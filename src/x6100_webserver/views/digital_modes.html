@@ -98,7 +98,8 @@ var fillRow = function(row) {
 }
 
 // Loads the table; then focuses the Edit button of entry `focus_id`, if
-// given, so keyboard users carry on where they were.
+// given (or of the first that `focus_id(data)` is true for), so keyboard
+// users carry on where they were.
 var loadData = function (focus_id) {
   $.get('/api/digital_modes', {}, function(data) {
     table_el.innerHTML = "";
@@ -109,7 +110,8 @@ var loadData = function (focus_id) {
       fillRow($(row));
     }
     if (focus_id !== undefined) {
-      const button = $(table_el).find("tr").filter(function () { return $(this).data().id === focus_id; }).find("button.edit");
+      const match = typeof focus_id === "function" ? focus_id : (x) => x.id === focus_id;
+      const button = $(table_el).find("tr").filter(function () { return match($(this).data()); }).first().find("button.edit");
       (button.length ? button : $("#add_mode")).trigger("focus");
     }
   });
@@ -183,6 +185,12 @@ var saveRow = function(e) {
   let row = $(e.currentTarget).parents("tr");
   let data = row.data();
   let cells = row.children("td");
+  // One save at a time: a held-down Enter repeats, and could otherwise
+  // add the same entry several times.
+  if (row.attr("aria-busy") === "true") {
+    return;
+  }
+  row.attr("aria-busy", "true");
   let new_data = {
     label: $(cells[0]).find('input')[0].value,
     freq: Math.round($(cells[1]).find('input')[0].value * 1_000_000),
@@ -207,13 +215,17 @@ var saveRow = function(e) {
       if (response.status == "OK") {
         announce(`${new_data.label} saved.`);
         $("#add_mode").prop("disabled", false);
-        // A new entry has no id here: focus goes to "Add new".
-        loadData(data.id);
+        // A new entry has no id yet: it is found by what was saved.
+        // (Not "Add new": a held-down Enter would then add another.)
+        loadData(data.id !== null ? data.id : (x) => x.label === new_data.label && x.freq === new_data.freq);
         $(".action").show();
+      } else {
+        row.removeAttr("aria-busy");
       }
     },
     error: function(xhr, status, error) {
       // The fields stay as typed, to be corrected.
+      row.removeAttr("aria-busy");
       alert(errorText(xhr, "Saving failed."));
       $(cells[0]).find("input").trigger("focus");
     }
