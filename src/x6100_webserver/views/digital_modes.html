@@ -1,19 +1,22 @@
 % rebase('base.html', title='Digital modes editor')
-<h3>Digital modes</h3>
+<h2 id="modes-title">Digital modes</h2>
 
 <button id="add_mode">Add new</button>
-<table id="digital_modes">
+<!-- On a narrow screen the table scrolls sideways by itself, not the page. -->
+<div class="table-scroll" role="region" aria-labelledby="modes-title" tabindex="0">
+<table id="digital_modes" aria-labelledby="modes-title">
   <thead>
     <tr>
-      <th class="name">Label</th>
-      <th class="freq">Freq,<br/>MHz</th>
-      <th class="">Mode</th>
-      <th class="">Type</th>
-      <th style="min-width: 6em;">Actions</tr>
+      <th class="name" scope="col">Label</th>
+      <th class="freq" scope="col">Freq,<br/>MHz</th>
+      <th class="" scope="col">Mode</th>
+      <th class="" scope="col">Type</th>
+      <th style="min-width: 6em;" scope="col">Actions</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
+</div>
 
 <template id="row-tpl">
   <tr>
@@ -22,10 +25,10 @@
     <td></td>
     <td></td>
     <td class='action-cell'>
-      <button class="edit action"><i class="si-edit"></i></button>
-      <button class="remove action"><i class="si-trash"></i></button>
-      <button class="save action"><i class="si-disk"></i></button>
-      <button class="close action"><i class="si-close"></i></button>
+      <button class="edit action"><i class="si-edit" aria-hidden="true"></i></button>
+      <button class="remove action"><i class="si-trash" aria-hidden="true"></i></button>
+      <button class="save action"><i class="si-disk" aria-hidden="true"></i></button>
+      <button class="close action"><i class="si-close" aria-hidden="true"></i></button>
     </td>
   </tr>
 </template>
@@ -49,6 +52,26 @@ var addRow = function(at_start=false) {
   return row;
 }
 
+// Each action button says what it does, and to which entry: icons alone
+// have no name for a screen reader. `title` shows it on hover.
+var labelButtons = function(row, name) {
+  for (const [cls, verb] of [["edit", "Edit"], ["remove", "Remove"], ["save", "Save"], ["close", "Cancel editing"]]) {
+    const label = `${verb} ${name}`;
+    row.find("button." + cls).attr({"aria-label": label, "title": label});
+  }
+}
+
+// A field for the edit row, named for screen readers (the column
+// header only names it visually).
+var field = function(tag, label, attrs) {
+  const el = document.createElement(tag);
+  for (const k in attrs) {
+    el[k] = attrs[k];
+  }
+  el.setAttribute("aria-label", label);
+  return el;
+}
+
 var fillRow = function(row) {
   let data = row.data();
   let name_td = row.children("td").get(0);
@@ -65,6 +88,8 @@ var fillRow = function(row) {
   const type_str = type_map[data.type];
   type_td.textContent = type_str;
 
+  labelButtons(row, data.label);
+
   let actions_td = row.children("td:nth-child(5)");
   $('.edit', actions_td).show();
   $('.remove', actions_td).show();
@@ -72,7 +97,9 @@ var fillRow = function(row) {
   $('.close', actions_td).hide();
 }
 
-var loadData = function () {
+// Loads the table; then focuses the Edit button of entry `focus_id`, if
+// given, so keyboard users carry on where they were.
+var loadData = function (focus_id) {
   $.get('/api/digital_modes', {}, function(data) {
     table_el.innerHTML = "";
     for (const i in data) {
@@ -81,24 +108,31 @@ var loadData = function () {
       $(row).data(data[i]);
       fillRow($(row));
     }
+    if (focus_id !== undefined) {
+      const button = $(table_el).find("tr").filter(function () { return $(this).data().id === focus_id; }).find("button.edit");
+      (button.length ? button : $("#add_mode")).trigger("focus");
+    }
   });
 }
 
 var setEditMode = function(e) {
   let row = $(e.currentTarget).parents("tr");
   for (const r of $(e.currentTarget).parents("tbody").find("tr")) {
-    if (r !== row) {
+    if (r !== row[0]) {
       $(r).find(".action").hide();
     }
   }
+  $("#add_mode").prop("disabled", true);
+
   let data = row.data();
   let cells = row.children();
-  cells[0].innerHTML = `<input type="text" value="${data.label}"/>`;
-  cells[1].innerHTML = `<input type="number" value="${data.freq / 1000000}" step="0.001" min="0"/>`;
+  // Made as elements, not HTML text: a label with quotes in it stays whole.
+  $(cells[0]).empty().append(field("input", "Label", {type: "text", value: data.label}));
+  $(cells[1]).empty().append(field("input", "Frequency, MHz", {type: "number", value: data.freq / 1000000, step: "0.001", min: "0"}));
 
   let mode_td = cells[2];
-  mode_td.innerHTML = "<select></select>";
-  select_el = $(mode_td).find("select");
+  let select_el = field("select", "Mode", {});
+  $(mode_td).empty().append(select_el);
   for (const key in mode_map) {
     let option = document.createElement('option');
     option.value = key;
@@ -110,8 +144,8 @@ var setEditMode = function(e) {
   }
 
   let type_td = cells[3];
-  type_td.innerHTML = "<select></select>";
-  select_el = $(type_td).find("select");
+  select_el = field("select", "Type", {});
+  $(type_td).empty().append(select_el);
   for (const key in type_map) {
     let option = document.createElement('option');
     option.value = key;
@@ -126,6 +160,8 @@ var setEditMode = function(e) {
   $('.remove', actions_td).hide();
   $('.save', actions_td).show();
   $('.close', actions_td).show();
+
+  $(cells[0]).find("input").trigger("focus");
 }
 
 var closeEditMode = function(e) {
@@ -133,37 +169,27 @@ var closeEditMode = function(e) {
   let data = row.data();
   if (data.id === null) {
     row.remove();
+    $("#add_mode").prop("disabled", false).trigger("focus");
   } else {
     fillRow(row);
+    row.find("button.edit").trigger("focus");
   }
+  $("#add_mode").prop("disabled", false);
   $(".action.edit, .action.remove").show();
   $(".action.save, .action.close").hide();
-}
-
-var addRow = function(at_start=false) {
-  let row = document.getElementById("row-tpl").content.querySelector("tr").cloneNode(true);
-  if (!at_start) {
-    table_el.appendChild(row);
-  } else {
-    table_el.prepend(row);
-  }
-  return row;
 }
 
 var saveRow = function(e) {
   let row = $(e.currentTarget).parents("tr");
   let data = row.data();
   let cells = row.children("td");
-  console.log($(cells[0]).find('input'))
   let new_data = {
     label: $(cells[0]).find('input')[0].value,
-    freq: $(cells[1]).find('input')[0].value * 1_000_000,
+    freq: Math.round($(cells[1]).find('input')[0].value * 1_000_000),
     mode: Number($(cells[2]).find('select')[0].value),
     type: Number($(cells[3]).find('select')[0].value),
   }
   let url, method;
-  console.log("Data to send", new_data);
-  console.log(data);
   if (data.id === null) {
     url = "/api/digital_modes";
     method = "PUT"
@@ -179,13 +205,17 @@ var saveRow = function(e) {
     dataType: "json",
     success: function(response) {
       if (response.status == "OK") {
-        loadData();
+        announce(`${new_data.label} saved.`);
+        $("#add_mode").prop("disabled", false);
+        // A new entry has no id here: focus goes to "Add new".
+        loadData(data.id);
         $(".action").show();
       }
     },
     error: function(xhr, status, error) {
-      alert(xhr.responseJSON.msg);
-      console.log(xhr.responseText)
+      // The fields stay as typed, to be corrected.
+      alert(errorText(xhr, "Saving failed."));
+      $(cells[0]).find("input").trigger("focus");
     }
   });
 }
@@ -203,8 +233,11 @@ var removeRow = function(e) {
         url: "/api/digital_modes/" + data.id,
         method: "DELETE",
         success: function(result) {
-          console.log(data);
-          loadData();
+          announce(`${data.label} removed.`);
+          loadData(null);
+        },
+        error: function(xhr) {
+          alert(errorText(xhr, `Removing ${data.label} failed.`));
         }
       })
     }
@@ -232,7 +265,18 @@ $(table_el)
   .on("click", ".edit", setEditMode)
   .on("click", ".remove", removeRow)
   .on("click", ".save", saveRow)
-  .on("click", ".close", closeEditMode);
+  .on("click", ".close", closeEditMode)
+  // In the edit row: Enter saves, Escape cancels.
+  .on("keydown", "input, select", function (e) {
+    const row = $(e.currentTarget).parents("tr");
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveRow({currentTarget: row.find("button.save")[0]});
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closeEditMode({currentTarget: row.find("button.close")[0]});
+    }
+  });
 
 
 loadData();

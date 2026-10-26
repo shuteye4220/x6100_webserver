@@ -1,13 +1,13 @@
 % rebase('base.html', title='Time Editor')
-<p>Welcome to X6100 alternative firmware configuration editor.</p>
+<h2>Time Editor</h2>
 
-<h3>Time Information</h3>
-<table>
+<h3 id="time-info">Time Information</h3>
+<table aria-labelledby="time-info">
     <thead>
         <tr>
-            <th>Local Time</th>
-            <th>Server Time</th>
-            <th>Server Timezone</th>
+            <th scope="col">Local Time</th>
+            <th scope="col">Server Time</th>
+            <th scope="col">Server Timezone</th>
         </tr>
     </thead>
     <tbody>
@@ -18,7 +18,7 @@
             <td>
                 <p id="server-time">Fetching Server Time...</p>
             </td>
-            <td colspan="2">
+            <td>
                 <p><span id="server-timezone">Fetching Server Timezone...</span></p>
             </td>
         </tr>
@@ -28,20 +28,26 @@
 <button id="sync-local-time-btn">Sync Local Time to Server</button>
 
 <h3>Manually Update Server Time</h3>
-<p>Input Time (Format: YYYY-MM-DD HH:MM:SS):</p>
-<input id="manual-time" type="text" placeholder="Input Time">
+<label for="manual-time">Time (format: YYYY-MM-DD HH:MM:SS)</label>
+<input id="manual-time" type="text" placeholder="2025-01-31 18:30:00" autocomplete="off">
 <button id="manual-update-btn">Manually Update Time</button>
 
 <h3>Update Server Time by NTP</h3>
-<p>Select or Input NTP Server:</p>
+<label for="ntp-servers">NTP server</label>
 <select id="ntp-servers"></select>
-<input id="custom-ntp" type="text" placeholder="Input Custom NTP Server Address" style="display: none;">
+<div id="custom-ntp-field" hidden>
+    <label for="custom-ntp">Custom NTP server address</label>
+    <input id="custom-ntp" type="text" placeholder="pool.ntp.org">
+</div>
 <button id="update-time-btn">Update Time</button>
 
 <h3>Set Server Timezone</h3>
-<p>Select Timezone or Input Custom Timezone:</p>
+<label for="timezone-select">Timezone</label>
 <select id="timezone-select"></select>
-<input id="custom-timezone" type="text" placeholder="e.g., Asia/Shanghai" style="display: none;">
+<div id="custom-timezone-field" hidden>
+    <label for="custom-timezone">Custom timezone</label>
+    <input id="custom-timezone" type="text" placeholder="e.g., Asia/Shanghai">
+</div>
 <button id="set-timezone-btn">Set Timezone</button>
 
 <script>
@@ -203,12 +209,8 @@
     });
 
     ntpSelect.addEventListener("change", function () {
-        const customInput = document.getElementById("custom-ntp");
-        if (this.value === "custom") {
-            customInput.style.display = "block";
-        } else {
-            customInput.style.display = "none";
-        }
+        // The address field appears right after this list.
+        document.getElementById("custom-ntp-field").hidden = this.value !== "custom";
     });
 
     // Populate Timezone Dropdown
@@ -221,12 +223,7 @@
     });
 
     timezoneSelect.addEventListener("change", function () {
-        const customInput = document.getElementById("custom-timezone");
-        if (this.value === "custom") {
-            customInput.style.display = "block";
-        } else {
-            customInput.style.display = "none";
-        }
+        document.getElementById("custom-timezone-field").hidden = this.value !== "custom";
     });
 
     // Event Listeners

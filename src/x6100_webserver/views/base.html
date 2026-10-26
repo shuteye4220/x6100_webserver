@@ -25,26 +25,42 @@
         6: "AM",
         7: "NFM",
       };
+
+      // Says `msg` in the page's status line: shown on screen, and read
+      // out by screen readers without moving focus.
+      function announce(msg) {
+        const el = document.getElementById("status");
+        el.textContent = "";
+        // Set after a moment, so the same message twice is read twice.
+        setTimeout(function () { el.textContent = msg; }, 100);
+      }
+
+      // The message of a failed request, whatever came back.
+      function errorText(xhr, fallback) {
+        return (xhr.responseJSON && xhr.responseJSON.msg) || fallback;
+      }
     </script>
   </head>
   <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <header>
       <h1>X6100 configurator</h1>
-      <nav>
-        <a href="/">General</a>
-        <a href="/bands">Bands</a>
-        <a href="/digital_modes">Digital modes</a>
-        <a href="/files/">File browser</a>
-        <a href="/time">Time Editor</a>
+      <nav aria-label="Main">
+% from bottle import request
+% for href, label in [("/", "General"), ("/bands", "Bands"), ("/digital_modes", "Digital modes"), ("/files/", "File browser"), ("/time", "Time Editor")]:
+%   current = request.path == href if href == "/" else request.path.startswith(href)
+        <a href="{{href}}"{{!' aria-current="page"' if current else ''}}>{{label}}</a>
+% end
       </nav>
     </header>
 
-    <main>
+    <main id="main" tabindex="-1">
+      <p id="status" role="status"></p>
       {{!base}}
     </main>
 
     <footer>
-      <p>Web configurator for <a href="https://github.com/gdyuldin/x6100_gui">alternative</a> firmware of Xiegu X6100</p>
+      <p>Web configurator for the <a href="https://github.com/OpenX6100/x6100_gui">alternative firmware</a> of Xiegu X6100</p>
     </footer>
   </body>
   </html>

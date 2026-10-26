@@ -34,3 +34,85 @@ th.hdr.name {
 #digital_modes {
     min-width: 100%;
 }
+
+/* Read by screen readers, not shown. */
+.visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* First thing a keyboard reaches; shown once focused. */
+.skip-link {
+    position: absolute;
+    left: 0.5rem;
+    top: -10rem;
+    z-index: 10;
+    padding: 0.5rem 1rem;
+    background: var(--bg);
+    color: var(--accent);
+    border: 2px solid var(--accent);
+}
+
+.skip-link:focus {
+    top: 0.5rem;
+}
+
+/* The page's messages ("Band 40m saved."); takes no room when empty. */
+#status:empty {
+    display: none;
+}
+
+#status {
+    padding: 0.5rem 1rem;
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+}
+
+/* The page you're on, in the menu. */
+nav a[aria-current="page"] {
+    font-weight: bold;
+    border-color: var(--text);
+}
+
+/* Main gets focus from the skip link; it needs no outline. */
+main:focus {
+    outline: none;
+}
+
+/* Focus shown on everything, as on buttons. */
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.file-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+/* Wide tables scroll within the page on narrow screens. */
+.table-scroll {
+    overflow-x: auto;
+    /* Keeps the hidden screen-reader text in its cells inside the box. */
+    position: relative;
+}
+
+/* ...which needs the page column free to be narrower than the table. */
+body > main {
+    min-width: 0;
+}
+
+.table-scroll:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}

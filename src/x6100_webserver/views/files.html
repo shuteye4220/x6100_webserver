@@ -1,8 +1,17 @@
-% rebase('base.html', title='File browser')
-<i class="si-folder"></i> <a href="..">..</a><br/>
+% from urllib.parse import quote
+% rebase('base.html', title='File browser: /' + current)
+<h2>Files in /{{current}}</h2>
+% if not dirs and not files:
+<p>This folder is empty.</p>
+% end
+<ul class="file-list">
+% if current:
+  <li><i class="si-folder" aria-hidden="true"></i> <a href="..">Parent folder</a></li>
+% end
 % for item in dirs:
-<i class="si-folder"></i> <a href="{{item}}/">{{item}}</a><br/>
+  <li><i class="si-folder" aria-hidden="true"></i> <a href="{{quote(str(item))}}/">{{item}}<span class="visually-hidden">, folder</span></a></li>
 % end
 % for item in files:
-<i class="si-file"></i> <a href="{{item}}">{{item}}</a><br/>
+  <li><i class="si-file" aria-hidden="true"></i> <a href="{{quote(str(item))}}">{{item}}</a></li>
 % end
+</ul>

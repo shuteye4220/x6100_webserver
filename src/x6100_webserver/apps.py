@@ -146,7 +146,8 @@ def files(filepath=""):
                 dirs.append(item.relative_to(path))
             else:
                 files.append(item.relative_to(path))
-        return bottle.template('files', dirs=dirs, files=files)
+        current = filepath.strip("/")
+        return bottle.template('files', dirs=dirs, files=files, current=current + "/" if current else "")
 
 # Timezone routes
 
